@@ -1,13 +1,15 @@
 package com.example.githubrepo.api
 
+import com.example.githubrepo.models.ContributorResponse
 import com.example.githubrepo.models.RepositoryResponse
+import com.example.githubrepo.util.Constants.Companion.PERSONAL_ACCESS_TOKEN
 import retrofit2.Response
-import retrofit2.http.GET
-import retrofit2.http.Query
+import retrofit2.http.*
 
 interface GitHubApi {
     @GET("search/repositories")
     suspend fun getRepositories(
+        @Header("Authorization") accessToken: String,
         @Query("q")
         q: String?,
         @Query("page")
@@ -16,14 +18,13 @@ interface GitHubApi {
         per_page: Int?
     ): Response<RepositoryResponse>
 
-//    @GET("repos/")
-//    suspend fun getContributor(
-//        @Query("query")
-//        query: String = "Android",
-//        @Query("page")
-//        page: Int = 1,
-//        @Query("per_page")
-//        per_page: Int = 20
-//    )
+    @GET("/repos/{owner}/{repo}/stats/contributors")
+    suspend fun getContributors(
+        @Header("Authorization") accessToken: String,
+        @Path("owner")
+        owner: String?,
+        @Path("repo")
+        repo: String?
+    ): Response<ContributorResponse>
 
 }

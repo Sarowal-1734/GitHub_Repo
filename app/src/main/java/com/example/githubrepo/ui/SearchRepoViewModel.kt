@@ -27,14 +27,17 @@ class SearchRepoViewModel(
     val repositories: MutableLiveData<Resource<RepositoryResponse>> = MutableLiveData()
     var repositoriesPageNumber = 1
     var repositoriesPageResponse: RepositoryResponse? = null
+
     // Show/Hide paginationProgressBar
     private val isLoading = MutableLiveData<Boolean>()
 
+    // get search repository
     fun getRepositories(searchQuery: String) =
         viewModelScope.launch {
             safeGetRepositoriesCall(searchQuery)
         }
 
+    // get search repository
     private suspend fun safeGetRepositoriesCall(
         searchQuery: String
     ) {
@@ -46,12 +49,14 @@ class SearchRepoViewModel(
 
         try {
             if (hasInternetConnection()) {
+                // get search repository response
                 val response =
                     gitRepository.getSearchRepositories(
                         searchQuery,
                         repositoriesPageNumber,
                         QUERY_PAGE_SIZE
                     )
+                // // handle the search repository response
                 repositories.postValue(handleSearchRepoResponse(response))
             } else {
                 repositories.postValue(Resource.Error("No internet connection"))
@@ -59,15 +64,17 @@ class SearchRepoViewModel(
         } catch (t: Throwable) {
             when (t) {
                 is IOException -> repositories.postValue(Resource.Error("Network Failure"))
-                else -> repositories.postValue(Resource.Error("Conversion error"))
+                else -> repositories.postValue(Resource.Error("Conversion error. Please try again later"))
             }
         }
         isLoading.value = false
     }
 
-    private fun handleSearchRepoResponse(response: Response<RepositoryResponse>): Resource<RepositoryResponse> {
+    private suspend fun handleSearchRepoResponse(response: Response<RepositoryResponse>): Resource<RepositoryResponse> {
         if (response.isSuccessful) {
             response.body()?.let { resultResponse ->
+                // get most active contributor
+                getContributor(resultResponse)
                 // Pagination
                 repositoriesPageNumber++
                 if (repositoriesPageResponse == null) {
@@ -77,7 +84,6 @@ class SearchRepoViewModel(
                     val newRepo = resultResponse.items
                     oldRepo?.addAll(newRepo)
                 }
-                repositoriesPageResponse
                 return Resource.Success(repositoriesPageResponse ?: resultResponse)
             }
         }
@@ -88,6 +94,58 @@ class SearchRepoViewModel(
         }
     }
 
+    // get most active contributor
+    private suspend fun getContributor(resultResponse: RepositoryResponse) {
+        var i = 0
+        while (i != resultResponse.items.size) {
+            // will get a list of contributors for every repo
+            val contributorResponse = gitRepository.getContributors(
+                resultResponse.items[i].owner.login,
+                resultResponse.items[i].name
+            )
+            if (contributorResponse.isSuccessful && contributorResponse.body() != null) {
+                val contributors = contributorResponse.body()
+                var totalAdditions = 0
+                var totalDeletions = 0
+                var totalCommits = 0
+                var maxCount = 0
+                var bestContributorsName = ""
+
+                if (contributors != null) {
+                    // iterate every contributor
+                    var j = 0
+                    while (j != contributors.size) {
+                        var additions = 0
+                        var deletions = 0
+                        var commits = 0
+                        // iterate every week
+                        var k = 0
+                        while (k != contributors[j].weeks.size) {
+                            // calculate week data for every single contributor
+                            additions += contributors[j].weeks[k].a
+                            deletions += contributors[j].weeks[k].d
+                            commits += contributors[j].weeks[k].c
+                            k++
+                        }
+                        val totalCount= commits + additions + deletions
+                        if (totalCount > maxCount) {
+                            maxCount = totalCount
+                            totalAdditions = additions
+                            totalDeletions = deletions
+                            totalCommits = commits
+                            bestContributorsName = contributors[j].author.login
+                        }
+                        j++
+                    }
+                }
+                resultResponse.items[i].best_contributor = bestContributorsName
+                resultResponse.items[i].additions = totalAdditions
+                resultResponse.items[i].deletions = totalDeletions
+                resultResponse.items[i].commits = totalCommits
+            }   // else gitHub limit exceed
+            i++
+        }
+    }
 
     // Check internet connection
     private fun hasInternetConnection(): Boolean {
@@ -117,7 +175,7 @@ class SearchRepoViewModel(
         return false
     }
 
-    // Show/Hide progressBar
+    // Show/Hide paginationProgressBar
     fun isLoading(): LiveData<Boolean> {
         return isLoading
     }

@@ -9,8 +9,9 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.githubrepo.R
 import com.example.githubrepo.models.Item
+import java.text.DateFormat
 import java.text.SimpleDateFormat
-import java.time.ZonedDateTime
+import java.util.*
 
 class RepositoryAdapter : RecyclerView.Adapter<RepositoryAdapter.RepositoryViewHolder>() {
 
@@ -20,10 +21,10 @@ class RepositoryAdapter : RecyclerView.Adapter<RepositoryAdapter.RepositoryViewH
         val textViewRepoDescription: TextView = itemView.findViewById(R.id.textViewRepoDescription)
         val textViewLanguage: TextView = itemView.findViewById(R.id.textViewLanguage)
         val textViewUpdatedTime: TextView = itemView.findViewById(R.id.textViewUpdatedTime)
-        /*val textViewUsername: ImageView = itemView.findViewById(R.id.textViewUsername)
-        val textViewAdditionsCount: ImageView = itemView.findViewById(R.id.textViewAdditionsCount)
-        val textViewDeletionsCount: ImageView = itemView.findViewById(R.id.textViewDeletionsCount)
-        val textViewCommitsCount: ImageView = itemView.findViewById(R.id.textViewCommitsCount)*/
+        val textViewUsername: TextView = itemView.findViewById(R.id.textViewUsername)
+        val textViewAdditionsCount: TextView = itemView.findViewById(R.id.textViewAdditionsCount)
+        val textViewDeletionsCount: TextView = itemView.findViewById(R.id.textViewDeletionsCount)
+        val textViewCommitsCount: TextView = itemView.findViewById(R.id.textViewCommitsCount)
     }
 
     private val differCallback = object : DiffUtil.ItemCallback<Item>() {
@@ -50,11 +51,22 @@ class RepositoryAdapter : RecyclerView.Adapter<RepositoryAdapter.RepositoryViewH
             textViewRepoAuthor.text = repository.owner.login
             textViewRepoDescription.text = repository.description
             textViewLanguage.text = repository.language
-            textViewUpdatedTime.text = repository.updated_at
+            textViewUpdatedTime.text = getFormattedDate(repository.updated_at)
+            textViewUsername.text = repository.best_contributor
+            textViewAdditionsCount.text = repository.additions.toString()
+            textViewDeletionsCount.text = repository.deletions.toString()
+            textViewCommitsCount.text = repository.commits.toString()
         }
         holder.itemView.setOnClickListener {
             onItemClickListener?.let { it(repository) }
         }
+    }
+
+    private fun getFormattedDate(updatedAtDate: String): String {
+        val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.FRANCE)
+        val date = formatter.parse(updatedAtDate)
+        val formattedDate: String = DateFormat.getDateInstance(DateFormat.MEDIUM).format(date)
+        return "Updated on $formattedDate"
     }
 
     override fun getItemCount(): Int {

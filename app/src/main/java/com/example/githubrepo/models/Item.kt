@@ -7,7 +7,10 @@ data class Item(
     val description: String,
     val language: String,
     val updated_at: String,
+    val html_url: String,
 
-    val contributors_url: String,
-    val html_url: String
+    var best_contributor: String,
+    var additions: Int,
+    var deletions: Int,
+    var commits: Int
 )

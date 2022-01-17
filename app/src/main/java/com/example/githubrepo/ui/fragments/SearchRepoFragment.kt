@@ -38,8 +38,10 @@ class SearchFragment : Fragment() {
 
         viewModel = (activity as MainActivity).viewModel
 
+        // Setup recyclerView
         setupRecyclerView()
 
+        // on search icon clicked to search repo
         binding.imageViewSearchButton.setOnClickListener {
             val searchQuery = binding.editTextSearchRepo.text.toString().trim()
             if (searchQuery.isNotEmpty()) {
@@ -52,6 +54,7 @@ class SearchFragment : Fragment() {
             }
         }
 
+        // hide keyboard and search for repo on search icon clicked
         binding.editTextSearchRepo.setOnEditorActionListener { _, actionId, _ ->
             return@setOnEditorActionListener when (actionId) {
                 EditorInfo.IME_ACTION_SEARCH -> {
@@ -62,13 +65,13 @@ class SearchFragment : Fragment() {
             }
         }
 
-        // on item click to open in browser
+        // on recycler item click to open repo in browser
         repoAdapter.setOnItemClickListener {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(it.html_url))
             startActivity(intent)
         }
 
-        // Show/Hide paginationProgressBar
+        // Show or Hide paginationProgressBar
         viewModel.isLoading().observe(viewLifecycleOwner, {
             binding.paginationProgressBar.isVisible = it
         })
@@ -102,21 +105,20 @@ class SearchFragment : Fragment() {
         return binding.root
     }
 
+    // hide initial progressBar
     private fun hideMainProgressBar() {
         binding.initialProgressBar.visibility = View.INVISIBLE
-        isLoading = false
     }
 
+    // show initial progressBar
     private fun showMainProgressBar() {
         binding.initialProgressBar.visibility = View.VISIBLE
-        isLoading = true
     }
 
     // Pagination
     var isLoading = false
     var isLastPage = false
     var isScrolling = false
-
     private val scrollListener = object : RecyclerView.OnScrollListener() {
         override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
             super.onScrollStateChanged(recyclerView, newState)
@@ -124,22 +126,18 @@ class SearchFragment : Fragment() {
                 isScrolling = true
             }
         }
-
         override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
             super.onScrolled(recyclerView, dx, dy)
             val layoutManager = recyclerView.layoutManager as LinearLayoutManager
             val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
             val visibleItemCount = layoutManager.childCount
             val totalItemCount = layoutManager.itemCount
-
             val isNotLeadingAndNotLastPage = !isLoading && !isLastPage
             val isAtLastItem = firstVisibleItemPosition + visibleItemCount >= totalItemCount
             val isNotAtBeginning = firstVisibleItemPosition >= 0
             val isTotalMoreThanVisible = totalItemCount >= Constants.QUERY_PAGE_SIZE
-
             val shouldPaginate = isNotLeadingAndNotLastPage && isAtLastItem
                     && isNotAtBeginning && isTotalMoreThanVisible && isScrolling
-
             if (shouldPaginate) {
                 val searchQuery = binding.editTextSearchRepo.text.toString().trim()
                 if (searchQuery.isNotEmpty()) {
@@ -152,6 +150,7 @@ class SearchFragment : Fragment() {
         }
     }
 
+    // Setup recyclerView
     private fun setupRecyclerView() {
         repoAdapter = RepositoryAdapter()
         binding.recyclerViewRepo.apply {
@@ -161,6 +160,7 @@ class SearchFragment : Fragment() {
         }
     }
 
+    // Hide keyboard
     private fun closeKeyboard() {
         val manager =
             view?.context?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager

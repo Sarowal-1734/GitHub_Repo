@@ -7,7 +7,7 @@ import com.example.githubrepo.repositories.GitRepository
 
 class SearchRepoViewModelProviderFactory(
     val app: Application,
-    val gitRepository: GitRepository
+    private val gitRepository: GitRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel?> create(modelClass: Class<T>): T {
         return SearchRepoViewModel(app, gitRepository) as T
