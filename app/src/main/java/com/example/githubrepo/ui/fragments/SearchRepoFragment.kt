@@ -11,7 +11,6 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.AbsListView
 import android.widget.Toast
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -71,15 +70,10 @@ class SearchFragment : Fragment() {
             startActivity(intent)
         }
 
-        // Show or Hide paginationProgressBar
-        viewModel.isLoading().observe(viewLifecycleOwner, {
-            binding.paginationProgressBar.isVisible = it
-        })
-
         viewModel.repositories.observe(viewLifecycleOwner, { response ->
             when (response) {
                 is Resource.Success -> {
-                    hideMainProgressBar()
+                    hideProgressBar()
                     response.data?.let { repoResponse ->
                         repoAdapter.differ.submitList(repoResponse.items.toList())
                         // Pagination
@@ -91,7 +85,7 @@ class SearchFragment : Fragment() {
                     }
                 }
                 is Resource.Error -> {
-                    hideMainProgressBar()
+                    hideProgressBar()
                     response.message?.let { message ->
                         Toast.makeText(activity, message, Toast.LENGTH_SHORT).show()
                     }
@@ -99,20 +93,29 @@ class SearchFragment : Fragment() {
                 is Resource.Loading -> {
                     showMainProgressBar()
                 }
+                is Resource.Paginating -> {
+                    showPaginationProgressBar()
+                }
             }
         })
 
         return binding.root
     }
 
-    // hide initial progressBar
-    private fun hideMainProgressBar() {
-        binding.initialProgressBar.visibility = View.INVISIBLE
+    // hide progressBar
+    private fun hideProgressBar() {
+        binding.initialProgressBar.visibility = View.GONE
+        binding.paginationProgressBar.visibility = View.GONE
     }
 
     // show initial progressBar
     private fun showMainProgressBar() {
         binding.initialProgressBar.visibility = View.VISIBLE
+    }
+
+    // show pagination progressBar
+    private fun showPaginationProgressBar() {
+        binding.paginationProgressBar.visibility = View.VISIBLE
     }
 
     // Pagination
@@ -126,6 +129,7 @@ class SearchFragment : Fragment() {
                 isScrolling = true
             }
         }
+
         override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
             super.onScrolled(recyclerView, dx, dy)
             val layoutManager = recyclerView.layoutManager as LinearLayoutManager

@@ -7,7 +7,6 @@ import android.net.ConnectivityManager.*
 import android.net.NetworkCapabilities.*
 import android.os.Build
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.githubrepo.RepoApplication
@@ -28,9 +27,6 @@ class SearchRepoViewModel(
     var repositoriesPageNumber = 1
     var repositoriesPageResponse: RepositoryResponse? = null
 
-    // Show/Hide paginationProgressBar
-    private val isLoading = MutableLiveData<Boolean>()
-
     // get search repository
     fun getRepositories(searchQuery: String) =
         viewModelScope.launch {
@@ -44,7 +40,7 @@ class SearchRepoViewModel(
         if (repositoriesPageNumber == 1) {
             repositories.postValue(Resource.Loading())
         } else {
-            isLoading.value = true
+            repositories.postValue(Resource.Paginating())
         }
 
         try {
@@ -67,7 +63,6 @@ class SearchRepoViewModel(
                 else -> repositories.postValue(Resource.Error("Conversion error. Please try again later"))
             }
         }
-        isLoading.value = false
     }
 
     private suspend fun handleSearchRepoResponse(response: Response<RepositoryResponse>): Resource<RepositoryResponse> {
@@ -99,10 +94,12 @@ class SearchRepoViewModel(
         var i = 0
         while (i != resultResponse.items.size) {
             // will get a list of contributors for every repo
-            val contributorResponse = gitRepository.getContributors(
-                resultResponse.items[i].owner.login,
-                resultResponse.items[i].name
-            )
+            val contributorResponse = resultResponse.items[i].name.let {
+                gitRepository.getContributors(
+                    resultResponse.items[i].owner.login,
+                    it
+                )
+            }
             if (contributorResponse.isSuccessful && contributorResponse.body() != null) {
                 val contributors = contributorResponse.body()
                 var totalAdditions = 0
@@ -127,7 +124,7 @@ class SearchRepoViewModel(
                             commits += contributors[j].weeks[k].c
                             k++
                         }
-                        val totalCount= commits + additions + deletions
+                        val totalCount = commits + additions + deletions
                         if (totalCount > maxCount) {
                             maxCount = totalCount
                             totalAdditions = additions
@@ -173,11 +170,6 @@ class SearchRepoViewModel(
             }
         }
         return false
-    }
-
-    // Show/Hide paginationProgressBar
-    fun isLoading(): LiveData<Boolean> {
-        return isLoading
     }
 
 }
